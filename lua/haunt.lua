@@ -21,6 +21,7 @@ local function buf_is_valid(buf) return api.nvim_buf_is_valid(buf) and buf ~= bu
 
 Haunt.config = {
     define_commands = true,   -- toggle to prevent definition of default user commands
+    replace_netrw = true,
     quit_help_with_q = true,  -- toggle to prevent definition of q -> :quit mapping in help buffers
     set_term_autocmds = true, -- toggle to prevent setting autocommands for opinionated terminal setup
     window = {
@@ -515,29 +516,43 @@ end
 
 -- Implementation for :HauntFiles.
 ---@param opts table See |lua-guide-commands-create|
-function Haunt.files(opts)
+function Haunt.files(opts, on_open)
     local state = remove_fixbuf(get_state())
-    local file = nil
-
-    -- Argument handling.
-    if (opts and opts.fargs and opts.fargs[1] == "-f") then -- Pick up explicit file set with -f <file>.
-        table.remove(opts.fargs, 1)
-        file = opts.fargs[1]
-        if file ~= nil then
-            table.remove(opts.fargs, 1)
-        else
-            termfail("missing argument for -f", state)
-            return
-        end
+    local buf = api.nvim_get_current_buf()
+    local bufname = api.nvim_buf_get_name(buf)
+    local passed = false
+    local function open(path)
+	vim.cmd(("edit %s"):format(fn.fnameescape(path)))
+	Haunt.files({ "" }, true)
     end
 
-    state.buf, state.win = floating(state.buf, state.win, "nofile", "man", "man")
-    sleep(100) -- Wait for floating window to open.
-    api.nvim_buf_set_lines(state.buf, 0, -1, false, {"this is cool"})
+    -- Argument handling.
+    if opts and opts.fargs and opts.fargs[1] ~= nil then
+        if opts.fargs[1] ~= "" then passed, bufname = true, opts.fargs[1] end
+    end
 
-    -- Floating window creation and |termopen| call.
+    -- only open file if passed via arg
+    if fn.isdirectory(bufname) ~= 1 then
+	if on_open then return end
+        if not passed then bufname = fn.fnamemodify(bufname, ":h") else open(bufname) return end
+    end
+
+    state.buf, state.win = floating(state.buf, state.win, "nofile", "files", "files")
+    sleep(100) -- Wait for floating window to open.
+
+    local files = fn.readdir(bufname)
+    table.insert(files, 1, "..")
+
+    api.nvim_buf_set_lines(state.buf, 0, -1, false, files)
+
     state.title = "files"
     set_state(state)
+    vim.keymap.set({'n', 'v'}, '<Enter>', function()
+	    local path = bufname .. (string.sub(bufname, -1) == "/" and "" or "/") .. fn.getline(fn.line("."))
+	    Haunt.reset()
+	    open(path)
+        end, { buf = state.buf }
+    )
 end
 
 -- Send whole buffer or fenced code block to a running terminal.
@@ -622,6 +637,14 @@ function Haunt.reset()
     state.win = Haunt.state.win
     state.title = Haunt.state.title
     vim.t.HauntState = state
+end
+
+
+if Haunt.config.replace_netrw then
+    vim.api.nvim_create_autocmd({ "VimEnter" }, {
+        pattern = "*",
+	callback = function() Haunt.files({ "" }, true) end,
+    })
 end
 
 return Haunt

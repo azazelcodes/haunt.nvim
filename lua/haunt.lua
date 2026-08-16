@@ -129,7 +129,7 @@ function Haunt.setup(config)
             desc = "Send buffer/selected lines/fenced code block to job given by v:count or t:HauntState.channel"
         })
     if Haunt.config.define_commands then
-        command("HauntTerms", Haunt.term,
+        command("HauntTerm", Haunt.term,
             {
                 nargs = "*",
                 complete = "shellcmd",
@@ -518,7 +518,6 @@ end
 function Haunt.files(opts)
     local state = remove_fixbuf(get_state())
     local file = nil
-    local termbuf = buf_invalid
 
     -- Argument handling.
     if (opts and opts.fargs and opts.fargs[1] == "-f") then -- Pick up explicit file set with -f <file>.
@@ -532,10 +531,11 @@ function Haunt.files(opts)
         end
     end
 
-    api.nvim_buf_set_lines(termbuf, 0, -1, false, {"this is cool"})
+    state.buf, state.win = floating(state.buf, state.win, "nofile", "man", "man")
+    sleep(100) -- Wait for floating window to open.
+    api.nvim_buf_set_lines(state.buf, 0, -1, false, {"this is cool"})
 
     -- Floating window creation and |termopen| call.
-    state.buf = termbuf
     state.title = "files"
     set_state(state)
 end

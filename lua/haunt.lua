@@ -517,6 +517,7 @@ end
 -- Implementation for :HauntFiles.
 ---@param opts table See |lua-guide-commands-create|
 function Haunt.files(opts, on_open)
+    -- TODO: maybe add " " to the beginning of folder lines and replace them in the enter keymap, this would require looping files though, so not done yet!
     local state = remove_fixbuf(get_state())
     local buf = api.nvim_get_current_buf()
     local bufname = api.nvim_buf_get_name(buf)
@@ -546,6 +547,8 @@ function Haunt.files(opts, on_open)
     state.buf, state.win = floating(state.buf, state.win, "nofile", "files", "files")
     sleep(100) -- Wait for floating window to open.
 
+    vim.cmd('stopinsert')
+    vim.cmd('normal! <ESC>')
     local files = fn.readdir(bufname)
     table.insert(files, 1, "..")
 
@@ -647,6 +650,9 @@ end
 
 
 if Haunt.config.replace_netrw then
+    vim.g.loaded_netrwPlugin = 1
+    vim.g.loaded_netrw = 1
+
     vim.api.nvim_create_autocmd({ "VimEnter" }, {
         pattern = "*",
 	callback = function() Haunt.files({ "" }, true) end,

@@ -1,6 +1,8 @@
 # 👻 haunt.nvim
 
-Floating windows for terminals, man pages and help buffers.
+## FORKED FROM https://git.sr.ht/~adigitoleo/haunt.nvim, PLEASE SUPPORT THE ORIGINAL AUTHOR
+
+Floating windows for terminals, man pages, help buffers, and a simple file explorer.
 
 > **haunt** (noun):
 >   *a place frequented by a specified person or group of people*

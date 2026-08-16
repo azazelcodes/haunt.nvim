@@ -129,7 +129,7 @@ function Haunt.setup(config)
             desc = "Send buffer/selected lines/fenced code block to job given by v:count or t:HauntState.channel"
         })
     if Haunt.config.define_commands then
-        command("HauntTerm", Haunt.term,
+        command("HauntTerms", Haunt.term,
             {
                 nargs = "*",
                 complete = "shellcmd",
@@ -158,13 +158,18 @@ function Haunt.setup(config)
             end,
             desc = "Show man page of argument (or current file if using !) or word under cursor in floating window"
         })
-        command("HauntReset", Haunt.reset, {
+        command("HauntFiles", Haunt.files, {
+            nargs = "*",
+	    bang = true,
+            desc = "Show file explorer of passed directory (or current file if using !)"
+        })
+	command("HauntReset", Haunt.reset, {
             nargs = 0,
             desc = "Close floating window and reset internal state (attempt to recover from bugs)",
         })
         Haunt._has_commands = true
     elseif Haunt._has_commands == true then
-        for _, cmd in pairs({ "HauntHelp", "HauntMan", "HauntTerm", "HauntLs", "HauntReset" }) do
+        for _, cmd in pairs({ "HauntHelp", "HauntMan", "HauntTerm", "HauntFiles", "HauntLs", "HauntReset" }) do
             api.nvim_del_user_command(cmd)
         end
     end
@@ -505,6 +510,33 @@ function Haunt.man(opts)
     sleep(100)
 
     state.title = "man"
+    set_state(state)
+end
+
+-- Implementation for :HauntFiles.
+---@param opts table See |lua-guide-commands-create|
+function Haunt.files(opts)
+    local state = remove_fixbuf(get_state())
+    local file = nil
+    local termbuf = buf_invalid
+
+    -- Argument handling.
+    if (opts and opts.fargs and opts.fargs[1] == "-f") then -- Pick up explicit file set with -f <file>.
+        table.remove(opts.fargs, 1)
+        file = opts.fargs[1]
+        if file ~= nil then
+            table.remove(opts.fargs, 1)
+        else
+            termfail("missing argument for -f", state)
+            return
+        end
+    end
+
+    api.nvim_buf_set_lines(termbuf, 0, -1, false, {"this is cool"})
+
+    -- Floating window creation and |termopen| call.
+    state.buf = termbuf
+    state.title = "files"
     set_state(state)
 end
 

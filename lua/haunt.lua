@@ -522,6 +522,12 @@ function Haunt.files(opts, on_open)
     local bufname = api.nvim_buf_get_name(buf)
     local passed = false
     local function open(path)
+	if vim.bo[buf].modified then
+	    if opts.bang ~= true then vim.notify("UNSAVED CHANGES! Did not open file because you did not save. (Override by opening HauntFiles with !)") return
+	    else api.nvim_buf_delete(buf, { force = true }) end
+    	else
+    	    api.nvim_buf_delete(buf, { force = false })
+	end
 	vim.cmd(("edit %s"):format(fn.fnameescape(path)))
 	Haunt.files({ "" }, true)
     end
